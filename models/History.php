@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\HasEventsInterface;
 use app\models\traits\ObjectNameTrait;
 use Yii;
 use yii\db\ActiveQuery;
@@ -19,11 +20,14 @@ use yii\db\ActiveRecord;
  * @property string $message
  * @property string $detail
  * @property integer $user_id
+ * @property integer $event_id
  *
  * @property string $eventText
  *
  * @property Customer $customer
  * @property User $user
+ * @property Event $event
+ * @property Object $object
  *
  * @property Task $task
  * @property Sms $sms
@@ -32,22 +36,6 @@ use yii\db\ActiveRecord;
 class History extends ActiveRecord
 {
     use ObjectNameTrait;
-
-    const EVENT_CREATED_TASK = 'created_task';
-    const EVENT_UPDATED_TASK = 'updated_task';
-    const EVENT_COMPLETED_TASK = 'completed_task';
-
-    const EVENT_INCOMING_SMS = 'incoming_sms';
-    const EVENT_OUTGOING_SMS = 'outgoing_sms';
-
-    const EVENT_INCOMING_CALL = 'incoming_call';
-    const EVENT_OUTGOING_CALL = 'outgoing_call';
-
-    const EVENT_INCOMING_FAX = 'incoming_fax';
-    const EVENT_OUTGOING_FAX = 'outgoing_fax';
-
-    const EVENT_CUSTOMER_CHANGE_TYPE = 'customer_change_type';
-    const EVENT_CUSTOMER_CHANGE_QUALITY = 'customer_change_quality';
 
     /**
      * @inheritdoc
@@ -64,7 +52,7 @@ class History extends ActiveRecord
     {
         return [
             [['ins_ts'], 'safe'],
-            [['customer_id', 'object_id', 'user_id'], 'integer'],
+            [['customer_id', 'object_id', 'user_id', 'event_id'], 'integer'],
             [['event'], 'required'],
             [['message', 'detail'], 'string'],
             [['event', 'object'], 'string', 'max' => 255],
@@ -107,47 +95,20 @@ class History extends ActiveRecord
         return $this->hasOne(User::class, ['id' => 'user_id']);
     }
 
-    /**
-     * @return array
-     */
-    public static function getEventTexts()
+    public function getEvent(): ActiveQuery
     {
-        return [
-            self::EVENT_CREATED_TASK => Yii::t('app', 'Task created'),
-            self::EVENT_UPDATED_TASK => Yii::t('app', 'Task updated'),
-            self::EVENT_COMPLETED_TASK => Yii::t('app', 'Task completed'),
-
-            self::EVENT_INCOMING_SMS => Yii::t('app', 'Incoming message'),
-            self::EVENT_OUTGOING_SMS => Yii::t('app', 'Outgoing message'),
-
-            self::EVENT_CUSTOMER_CHANGE_TYPE => Yii::t('app', 'Type changed'),
-            self::EVENT_CUSTOMER_CHANGE_QUALITY => Yii::t('app', 'Property changed'),
-
-            self::EVENT_OUTGOING_CALL => Yii::t('app', 'Outgoing call'),
-            self::EVENT_INCOMING_CALL => Yii::t('app', 'Incoming call'),
-
-            self::EVENT_INCOMING_FAX => Yii::t('app', 'Incoming fax'),
-            self::EVENT_OUTGOING_FAX => Yii::t('app', 'Outgoing fax'),
-        ];
+        return $this->hasOne(Event::class, ['id' => 'event_id']);
     }
 
-    /**
-     * @param $event
-     * @return mixed
-     */
-    public static function getEventTextByEvent($event)
+    public function getObject(): ActiveQuery
     {
-        return static::getEventTexts()[$event] ?? $event;
+        return $this->getRelation($this->object);
     }
 
-    /**
-     * @return mixed|string
-     */
-    public function getEventText()
+    public function getEventText(): string
     {
-        return static::getEventTextByEvent($this->event);
+        return $this?->getEvent()->event_text ?? "";
     }
-
 
     /**
      * @param $attribute
@@ -187,5 +148,14 @@ class History extends ActiveRecord
     {
         $detail = json_decode($this->detail);
         return isset($detail->data->{$attribute}) ? $detail->data->{$attribute} : null;
+    }
+
+    public function getHistoryBody(): string
+    {
+        if ($this->object instanceof HasEventsInterface && $this->event != null) {
+            return $this->object->getHistoryBody($this->event);
+        }
+
+        return $this->getEventText();
     }
 }

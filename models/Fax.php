@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\HasEventsInterface;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
@@ -21,13 +22,16 @@ use yii\db\ActiveRecord;
  *
  * @property User $user
  */
-class Fax extends ActiveRecord
+class Fax extends ActiveRecord implements HasEventsInterface
 {
     const DIRECTION_INCOMING = 0;
     const DIRECTION_OUTGOING = 1;
 
     const TYPE_POA_ATC = 'poa_atc';
     const TYPE_REVOCATION_NOTICE = 'revocation_notice';
+
+    const EVENT_INCOMING_FAX = 'incoming_fax';
+    const EVENT_OUTGOING_FAX = 'outgoing_fax';
 
     /**
      * @inheritdoc
@@ -92,4 +96,8 @@ class Fax extends ActiveRecord
         return self::getTypeTexts()[$this->type] ?? $this->type;
     }
 
+    public function getHistoryBody(Event $event): string
+    {
+        return $event->event_text;
+    }
 }

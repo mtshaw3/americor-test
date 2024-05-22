@@ -5,6 +5,7 @@ namespace app\models;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
+use app\models\interfaces\HasEventsInterface;
 
 /**
  * This is the model class for table "{{%task}}".
@@ -33,7 +34,7 @@ use yii\db\ActiveRecord;
  * @property string $isInbox
  * @property string $statusText
  */
-class Task extends ActiveRecord
+class Task extends ActiveRecord implements HasEventsInterface
 {
     const STATUS_NEW = 0;
     const STATUS_DONE = 1;
@@ -42,6 +43,10 @@ class Task extends ActiveRecord
     const STATE_INBOX = 'inbox';
     const STATE_DONE = 'done';
     const STATE_FUTURE = 'future';
+
+    const EVENT_CREATED_TASK = 'created_task';
+    const EVENT_UPDATED_TASK = 'updated_task';
+    const EVENT_COMPLETED_TASK = 'completed_task';
 
     /**
      * @inheritdoc
@@ -165,5 +170,17 @@ class Task extends ActiveRecord
     public function getIsDone()
     {
         return $this->status == self::STATUS_DONE;
+    }
+
+    public function getHistoryBody(Event $event): string
+    {
+        switch ($event->name) {
+            case self::EVENT_COMPLETED_TASK:
+            case self::EVENT_UPDATED_TASK:
+            case self::EVENT_CREATED_TASK:
+                return "$event->event_text: " . ($this->title ?? '');
+            default:
+                return "";
+        }
     }
 }

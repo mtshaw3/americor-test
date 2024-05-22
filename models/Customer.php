@@ -2,7 +2,7 @@
 
 namespace app\models;
 
-
+use app\models\interfaces\HasEventsInterface;
 use Yii;
 use yii\db\ActiveRecord;
 
@@ -13,7 +13,7 @@ use yii\db\ActiveRecord;
  * @property integer $id
  * @property string $name
  */
-class Customer extends ActiveRecord
+class Customer extends ActiveRecord implements HasEventsInterface
 {
     const QUALITY_ACTIVE = 'active';
     const QUALITY_REJECTED = 'rejected';
@@ -24,6 +24,9 @@ class Customer extends ActiveRecord
     const TYPE_LEAD = 'lead';
     const TYPE_DEAL = 'deal';
     const TYPE_LOAN = 'loan';
+
+    const EVENT_CUSTOMER_CHANGE_TYPE = 'customer_change_type';
+    const EVENT_CUSTOMER_CHANGE_QUALITY = 'customer_change_quality';
 
     /**
      * @inheritdoc
@@ -95,5 +98,21 @@ class Customer extends ActiveRecord
     public static function getTypeTextByType($type)
     {
         return self::getTypeTexts()[$type] ?? $type;
+    }
+
+    public function getHistoryBody(Event $event): string
+    {
+        switch ($event->name) {
+            case self::EVENT_CUSTOMER_CHANGE_TYPE:
+                return "$event->event_text " .
+                    (self::getTypeTextByType($this->getDetailOldValue('type')) ?? "not set") . ' to ' .
+                    (self::getTypeTextByType($this->getDetailNewValue('type')) ?? "not set");
+            case self::EVENT_CUSTOMER_CHANGE_QUALITY:
+                return "$event->event_text " .
+                    (self::getQualityTextByQuality($this->getDetailOldValue('quality')) ?? "not set") . ' to ' .
+                    (self::getQualityTextByQuality($this->getDetailNewValue('quality')) ?? "not set");
+            default:
+                return $event->event_text;
+        }
     }
 }

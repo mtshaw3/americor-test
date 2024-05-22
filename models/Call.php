@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\HasEventsInterface;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
@@ -31,13 +32,16 @@ use yii\db\ActiveRecord;
  * @property Customer $customer
  * @property User $user
  */
-class Call extends ActiveRecord
+class Call extends ActiveRecord implements HasEventsInterface
 {
     const STATUS_NO_ANSWERED = 0;
     const STATUS_ANSWERED = 1;
 
     const DIRECTION_INCOMING = 0;
     const DIRECTION_OUTGOING = 1;
+
+    const EVENT_INCOMING_CALL = 'incoming_call';
+    const EVENT_OUTGOING_CALL = 'outgoing_call';
 
     public $duration = 720;
 
@@ -178,5 +182,14 @@ class Call extends ActiveRecord
             return $this->duration >= 3600 ? gmdate("H:i:s", $this->duration) : gmdate("i:s", $this->duration);
         }
         return '00:00';
+    }
+
+    public function getHistoryBody(Event $event): string
+    {
+        switch ($event->name) {
+            case self::EVENT_INCOMING_CALL:
+            case self::EVENT_OUTGOING_CALL:
+                return $this->totalStatusText . ($this->getTotalDisposition(false) ? " <span class='text-grey'>" . $this->getTotalDisposition(false) . "</span>" : "");
+        }
     }
 }
