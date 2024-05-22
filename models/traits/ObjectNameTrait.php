@@ -2,23 +2,10 @@
 
 namespace app\models\traits;
 
-use app\models\Call;
-use app\models\Customer;
-use app\models\Fax;
-use app\models\Sms;
-use app\models\Task;
-use app\models\User;
+use app\models\interfaces\HasEventsInterface;
 
 trait ObjectNameTrait
 {
-    public static $classes = [
-        Customer::class,
-        Sms::class,
-        Task::class,
-        Call::class,
-        Fax::class,
-        User::class,
-    ];
 
     /**
      * @param $name
@@ -28,10 +15,11 @@ trait ObjectNameTrait
     public function getRelation($name, $throwException = true)
     {
         $getter = 'get' . $name;
-        $class = self::getClassNameByRelation($name);
+        $class = 'app\models\\' . $name;
+        $tableName = self::getObjectByTableClassName($class);
 
-        if (!method_exists($this, $getter) && $class) {
-            return $this->hasOne($class, ['id' => 'object_id']);
+        if (!method_exists($this, $getter) && $class instanceof HasEventsInterface) {
+            return $this->hasOne($tableName, ['id' => 'object_id']);
         }
 
         return parent::getRelation($name, $throwException);
@@ -48,19 +36,5 @@ trait ObjectNameTrait
         }
 
         return $className;
-    }
-
-    /**
-     * @param $relation
-     * @return string|null
-     */
-    public static function getClassNameByRelation($relation)
-    {
-        foreach (self::$classes as $class) {
-            if (self::getObjectByTableClassName($class) == $relation) {
-                return $class;
-            }
-        }
-        return null;
     }
 }

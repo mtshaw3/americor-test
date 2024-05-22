@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\models\interfaces\HasEventsInterface;
 use Yii;
 use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
@@ -27,7 +28,7 @@ use yii\db\ActiveRecord;
  * @property Customer $customer
  * @property User $user
  */
-class Sms extends ActiveRecord
+class Sms extends ActiveRecord implements HasEventsInterface
 {
     const DIRECTION_INCOMING = 0;
     const DIRECTION_OUTGOING = 1;
@@ -45,6 +46,8 @@ class Sms extends ActiveRecord
     const STATUS_FAILED = 14;
     const STATUS_SUCCESS = 13;
 
+    const EVENT_INCOMING_SMS = 'incoming_sms';
+    const EVENT_OUTGOING_SMS = 'outgoing_sms';
 
     /**
      * @inheritdoc
@@ -168,5 +171,16 @@ class Sms extends ActiveRecord
     public function getDirectionText()
     {
         return self::getDirectionTextByValue($this->direction);
+    }
+
+    public function getHistoryBody(Event $event): string
+    {
+        switch ($event->name) {
+            case self::EVENT_INCOMING_SMS:
+            case self::EVENT_OUTGOING_SMS:
+                return $this?->message ?? '';
+            default:
+                return '';
+        }
     }
 }
